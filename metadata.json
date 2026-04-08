@@ -1,0 +1,5 @@
+{
+  "name": "SJSU Spartan Exam Prep AI",
+  "description": "An intelligent exam preparation assistant for SJSU students. Automates study material ingestion to generate flashcards, practice quizzes, and dynamic study schedules using Gemini AI.",
+  "requestFramePermissions": []
+}
