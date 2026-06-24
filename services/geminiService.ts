@@ -8,12 +8,28 @@ let openaiInstance: OpenAI | null = null;
 
 const isBrowser = typeof window !== 'undefined';
 
-function getGemini() {
+let activeKeyIndex = 0;
+
+function getGemini(forceNext: boolean = false) {
+  const candidateKeys = [
+    process.env.GEMINI_API_KEY,
+    process.env.GEMINI_API_KEY1,
+    process.env.NEXT_PUBLIC_GEMINI_API_KEY,
+    process.env.VITE_GEMINI_API_KEY
+  ].filter((k): k is string => !!k && !k.startsWith('MY_G'));
+
+  if (candidateKeys.length === 0) {
+    console.error("SERVER ERROR: No GEMINI_API_KEY is found in environment.");
+    throw new Error("Gemini API key is missing or invalid. Please check your settings.");
+  }
+
+  if (forceNext) {
+    activeKeyIndex = (activeKeyIndex + 1) % candidateKeys.length;
+    aiInstance = null; // force re-creation
+  }
+
   if (!aiInstance) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error("Gemini API key is missing. Please set GEMINI_API_KEY in the settings.");
-    }
+    const apiKey = candidateKeys[activeKeyIndex];
     aiInstance = new GoogleGenAI({ apiKey });
   }
   return aiInstance;
@@ -28,6 +44,43 @@ function getOpenAI() {
     openaiInstance = new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
   }
   return openaiInstance;
+}
+
+async function executeGeminiCall<T>(apiCall: () => Promise<T>): Promise<T> {
+  const candidateKeys = [
+    process.env.GEMINI_API_KEY,
+    process.env.GEMINI_API_KEY1,
+    process.env.NEXT_PUBLIC_GEMINI_API_KEY,
+    process.env.VITE_GEMINI_API_KEY
+  ].filter((k): k is string => !!k && !k.startsWith('MY_G'));
+
+  let attempts = 0;
+  const maxAttempts = Math.max(1, candidateKeys.length);
+
+  while (attempts < maxAttempts) {
+    try {
+      return await apiCall();
+    } catch (error: any) {
+      const message = error?.message || "";
+      const status = error?.status || error?.response?.status;
+      
+      const isKeyError = message.includes("leaked") || 
+                         message.includes("API key not valid") || 
+                         message.includes("INVALID_ARGUMENT") ||
+                         message.includes("PERMISSION_DENIED") ||
+                         status === 403 || 
+                         status === 400;
+
+      if (isKeyError && candidateKeys.length > 1 && attempts < maxAttempts - 1) {
+        console.warn(`Gemini API key error detected: ${message}. Rotating key...`);
+        getGemini(true); // Rotate to the next key and recreate aiInstance
+        attempts++;
+      } else {
+        throw error;
+      }
+    }
+  }
+  return await apiCall(); // fallback final try
 }
 
 /**
@@ -106,16 +159,15 @@ Your goal is to provide high-fidelity academic support based strictly on the use
 
 async function callWithFailover(geminiCall: () => Promise<string>, openaiCall: () => Promise<string>): Promise<string> {
   try {
-    return await geminiCall();
+    return await executeGeminiCall(geminiCall);
   } catch (error: any) {
-    const status = error?.status || error?.response?.status;
-    const message = error?.message || "";
-    
-    if (status === 503 || status === 429 || message.includes("503") || message.includes("429")) {
-      console.warn("Gemini service issue detected. Backup Model Active (OpenAI).");
+    console.warn("Gemini execution failed with all keys. Attempting failover to OpenAI.", error.message || error);
+    try {
       return await openaiCall();
+    } catch (openaiErr: any) {
+      console.error("OpenAI backup failover also failed:", openaiErr.message || openaiErr);
+      throw error; // throw original Gemini error if OpenAI also fails
     }
-    throw error;
   }
 }
 
@@ -133,9 +185,11 @@ export const fetchLinkContent = async (url: string): Promise<{ text: string; sou
   const geminiCall = async () => {
     const ai = getGemini();
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: [{ role: 'user', parts: [{ text: `Analyze the content of the article at this URL: ${url}. 
-      STRICT RULE: Extract ONLY the main academic or informational content present on the page.` }] }],
+      model: 'gemini-3-flash-preview',
+      contents: { 
+        parts: [{ text: `Analyze the content of the article at this URL: ${url}. 
+      STRICT RULE: Extract ONLY the main academic or informational content present on the page.` }]
+      },
       config: { tools: [{ googleSearch: {} }] },
     });
     return JSON.stringify({ text: response.text, sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || [] });
@@ -173,8 +227,10 @@ export const generateFlashcards = async (materials: CourseMaterial[], notes: Not
   const geminiCall = async () => {
     const ai = getGemini();
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: [{ role: 'user', parts: [...contextToParts(materials, notes), { text: prompt }] }],
+      model: 'gemini-3-flash-preview',
+      contents: {
+        parts: [...contextToParts(materials, notes), { text: prompt }]
+      },
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
@@ -236,8 +292,10 @@ export const generateQuiz = async (materials: CourseMaterial[], notes: Note[] = 
   const geminiCall = async () => {
     const ai = getGemini();
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-pro',
-      contents: [{ role: 'user', parts: [...contextToParts(materials, notes), { text: prompt }] }],
+      model: 'gemini-3.1-pro-preview',
+      contents: {
+        parts: [...contextToParts(materials, notes), { text: prompt }]
+      },
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
@@ -300,8 +358,10 @@ export const extractStudyPlan = async (materials: CourseMaterial[], notes: Note[
   const geminiCall = async () => {
     const ai = getGemini();
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: [{ role: 'user', parts: [...contextToParts(materials, notes), { text: prompt }] }],
+      model: 'gemini-3-flash-preview',
+      contents: {
+        parts: [...contextToParts(materials, notes), { text: prompt }]
+      },
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
@@ -364,8 +424,10 @@ export const generateFAQMatrix = async (materials: CourseMaterial[], notes: Note
   const geminiCall = async () => {
     const ai = getGemini();
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: [{ role: 'user', parts: [...contextToParts(materials, notes), { text: prompt }] }],
+      model: 'gemini-3-flash-preview',
+      contents: {
+        parts: [...contextToParts(materials, notes), { text: prompt }]
+      },
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
@@ -428,8 +490,8 @@ export const simplifyConcept = async (concept: string, level: string = "simple")
   const geminiCall = async () => {
     const ai = getGemini();
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      model: 'gemini-3-flash-preview',
+      contents: { parts: [{ text: prompt }] },
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -477,8 +539,10 @@ export const chatWithContext = async (query: string, materials: CourseMaterial[]
   const geminiCall = async () => {
     const ai = getGemini();
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: [{ role: 'user', parts: [...contextToParts(materials, notes), { text: `Question: ${query}` }] }],
+      model: 'gemini-3-flash-preview',
+      contents: {
+        parts: [...contextToParts(materials, notes), { text: `Question: ${query}` }]
+      },
       config: { systemInstruction: SYSTEM_INSTRUCTION }
     });
     return response.text;
