@@ -1,5 +1,38 @@
+const backupEnv = {
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+  GEMINI_API_KEY1: process.env.GEMINI_API_KEY1,
+  NEXT_PUBLIC_GEMINI_API_KEY: process.env.NEXT_PUBLIC_GEMINI_API_KEY,
+  VITE_GEMINI_API_KEY: process.env.VITE_GEMINI_API_KEY,
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY
+};
+
+console.log('SERVER STARTUP - Initial environment keys:', {
+  GEMINI_API_KEY: !!backupEnv.GEMINI_API_KEY,
+  GEMINI_API_KEY_prefix: backupEnv.GEMINI_API_KEY?.substring(0, 8),
+  VITE_GEMINI_API_KEY: !!backupEnv.VITE_GEMINI_API_KEY,
+  VITE_GEMINI_API_KEY_prefix: backupEnv.VITE_GEMINI_API_KEY?.substring(0, 8),
+});
+
 import dotenv from 'dotenv';
 dotenv.config({ override: true });
+
+console.log('SERVER STARTUP - After dotenv load:', {
+  GEMINI_API_KEY: !!process.env.GEMINI_API_KEY,
+  GEMINI_API_KEY_prefix: process.env.GEMINI_API_KEY?.substring(0, 8),
+});
+
+// Restore backed up keys if they are missing or empty strings after dotenv loads
+for (const key of Object.keys(backupEnv) as (keyof typeof backupEnv)[]) {
+  if (backupEnv[key] && (!process.env[key] || process.env[key] === '')) {
+    process.env[key] = backupEnv[key];
+  }
+}
+
+console.log('SERVER STARTUP - After backup restore:', {
+  GEMINI_API_KEY: !!process.env.GEMINI_API_KEY,
+  GEMINI_API_KEY_prefix: process.env.GEMINI_API_KEY?.substring(0, 8),
+});
+
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -101,7 +134,16 @@ async function startServer() {
       status: "Spartan AI is online",
       environment: process.env.NODE_ENV || 'development',
       campus: "San Jose State University",
-      version: "1.2.0"
+      version: "1.2.0",
+      keys: {
+        GEMINI_API_KEY: !!process.env.GEMINI_API_KEY,
+        GEMINI_API_KEY_len: process.env.GEMINI_API_KEY?.length || 0,
+        GEMINI_API_KEY_prefix: process.env.GEMINI_API_KEY?.substring(0, 8),
+        GEMINI_API_KEY1: !!process.env.GEMINI_API_KEY1,
+        NEXT_PUBLIC_GEMINI_API_KEY: !!process.env.NEXT_PUBLIC_GEMINI_API_KEY,
+        VITE_GEMINI_API_KEY: !!process.env.VITE_GEMINI_API_KEY,
+        OPENAI_API_KEY: !!process.env.OPENAI_API_KEY
+      }
     });
   });
 
