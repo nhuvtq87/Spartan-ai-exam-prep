@@ -15,7 +15,7 @@ async function handleResponse(res: Response, defaultMessage: string) {
     try {
       const data = await res.json();
       if (data && data.error) {
-        errMsg = data.error;
+        errMsg = typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
       }
     } catch (e) {
       // ignore
@@ -31,7 +31,7 @@ async function handleTextResponse(res: Response, defaultMessage: string) {
     try {
       const data = await res.json();
       if (data && data.error) {
-        errMsg = data.error;
+        errMsg = typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
       }
     } catch (e) {
       // ignore
@@ -41,7 +41,7 @@ async function handleTextResponse(res: Response, defaultMessage: string) {
   return res.text();
 }
 
-let currentModel = 'gemini-2.5-pro';
+let currentModel = 'gemini-3.5-flash';
 
 export function getCurrentModel() {
   return currentModel;
@@ -104,7 +104,7 @@ async function executeGeminiCall<T>(apiCall: () => Promise<T>): Promise<T> {
     process.env.VITE_GEMINI_API_KEY
   ])).filter((k): k is string => !!k && !k.startsWith('MY_G') && !k.startsWith('AIzaSyD3'));
 
-  const modelsToTry = ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-pro-latest'];
+  const modelsToTry = ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.5-pro'];
   let modelIndex = 0;
   
   let keyAttempts = 0;
@@ -154,6 +154,9 @@ async function executeGeminiCall<T>(apiCall: () => Promise<T>): Promise<T> {
             initialModel: modelsToTry[0],
             exhaustedModels: modelsToTry
           });
+          if (errStr.includes("429") || errStr.includes("quota") || status === 429) {
+            throw new Error("AI API Quota exceeded. Please check your API key billing details and limits.");
+          }
         }
       }
 
@@ -163,6 +166,9 @@ async function executeGeminiCall<T>(apiCall: () => Promise<T>): Promise<T> {
         keyAttempts++;
       } else {
         logger.error(`Unmanageable API exception encountered`, { statusCode: status, error: message });
+        if (errStr.includes("429") || errStr.includes("quota") || status === 429) {
+          throw new Error("AI API Quota exceeded. Please check your API key billing details and limits.");
+        }
         throw error;
       }
     }
@@ -170,7 +176,14 @@ async function executeGeminiCall<T>(apiCall: () => Promise<T>): Promise<T> {
 
   // Final fallback try using the last stable model if we somehow loop through
   currentModel = modelsToTry[modelsToTry.length - 1];
-  return await apiCall();
+  try {
+    return await apiCall();
+  } catch (e: any) {
+    if (String(e).includes("429") || String(e).includes("quota")) {
+      throw new Error("AI API Quota exceeded. Please check your API key billing details and limits.");
+    }
+    throw e;
+  }
 }
 
 /**
@@ -269,8 +282,21 @@ async function callWithFailover(geminiCall: () => Promise<string>, openaiCall: (
       return await openaiCall();
     } catch (openaiErr: any) {
       console.error("OpenAI backup failover also failed:", openaiErr.message || openaiErr);
-      throw error; // throw original Gemini error if OpenAI also fails
+      throw new Error(`Gemini Error: ${error.message}. OpenAI Failover Error: ${openaiErr.message}`); // throw both errors
     }
+  }
+}
+
+function parseJSON(str: string) {
+  try {
+    let cleaned = str.trim();
+    const match = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (match) {
+      cleaned = match[1].trim();
+    }
+    return JSON.parse(cleaned);
+  } catch (e: any) {
+    throw new Error(`Failed to parse JSON response: ${e.message}. Raw output: ${str.substring(0, 100)}...`);
   }
 }
 
@@ -309,7 +335,7 @@ export const fetchLinkContent = async (url: string): Promise<{ text: string; sou
     return JSON.stringify({ text: response.choices[0].message.content, sources: [] });
   };
 
-  const result = JSON.parse(await callWithFailover(geminiCall, openaiCall));
+  const result = parseJSON(await callWithFailover(geminiCall, openaiCall));
   return { text: result.text || "Could not extract content.", sources: result.sources || [] };
 };
 
@@ -372,7 +398,7 @@ export const generateFlashcards = async (materials: CourseMaterial[], notes: Not
     return response.choices[0].message.content || "{}";
   };
 
-  const data = JSON.parse(await callWithFailover(geminiCall, openaiCall));
+  const data = parseJSON(await callWithFailover(geminiCall, openaiCall));
   if (data.error) throw new Error(data.error);
   return data.flashcards || [];
 };
@@ -437,7 +463,7 @@ export const generateQuiz = async (materials: CourseMaterial[], notes: Note[] = 
     return response.choices[0].message.content || "{}";
   };
 
-  const data = JSON.parse(await callWithFailover(geminiCall, openaiCall));
+  const data = parseJSON(await callWithFailover(geminiCall, openaiCall));
   if (data.error) throw new Error(data.error);
   return data.questions || [];
 };
@@ -495,11 +521,11 @@ export const extractStudyPlan = async (materials: CourseMaterial[], notes: Note[
       response_format: { type: "json_object" }
     });
     const content = response.choices[0].message.content || "[]";
-    const parsed = JSON.parse(content);
+    const parsed = parseJSON(content);
     return JSON.stringify(Array.isArray(parsed) ? parsed : (parsed.events || parsed.studyPlan || []));
   };
 
-  const data = JSON.parse(await callWithFailover(geminiCall, openaiCall));
+  const data = parseJSON(await callWithFailover(geminiCall, openaiCall));
   return data.map((item: any) => ({
     ...item,
     id: crypto.randomUUID(),
@@ -558,11 +584,11 @@ export const generateFAQMatrix = async (materials: CourseMaterial[], notes: Note
       response_format: { type: "json_object" }
     });
     const content = response.choices[0].message.content || "[]";
-    const parsed = JSON.parse(content);
+    const parsed = parseJSON(content);
     return JSON.stringify(Array.isArray(parsed) ? parsed : (parsed.faqs || []));
   };
 
-  return JSON.parse(await callWithFailover(geminiCall, openaiCall));
+  return parseJSON(await callWithFailover(geminiCall, openaiCall));
 };
 
 export const simplifyConcept = async (concept: string, level: string = "simple"): Promise<SimplifiedConcept> => {
@@ -619,7 +645,7 @@ export const simplifyConcept = async (concept: string, level: string = "simple")
     return response.choices[0].message.content || "{}";
   };
 
-  return JSON.parse(await callWithFailover(geminiCall, openaiCall));
+  return parseJSON(await callWithFailover(geminiCall, openaiCall));
 };
 
 export const chatWithContext = async (query: string, materials: CourseMaterial[], notes: Note[] = []) => {

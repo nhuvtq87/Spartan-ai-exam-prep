@@ -55,11 +55,7 @@ const App: React.FC = () => {
       setFaqs(newFaqs);
     } catch (error: any) {
       console.error("AI Generation Error:", error);
-      if (error.message === 'No academic data available') {
-        alert("No academic data available. Please ensure your PDF is saved as a 'Recognized Text' PDF (OCR) or try uploading the original .pptx file instead.");
-      } else {
-        alert("Failed to process materials with AI. Please check your API key/connection.");
-      }
+      alert(error?.message || "Failed to process materials with AI. Please check your API key/connection.");
     }
   };
 
@@ -160,9 +156,9 @@ const App: React.FC = () => {
     try {
       const newFlashcards = await generateFlashcards(materials, notes, count);
       setFlashcards(newFlashcards);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Flashcard Regeneration Error:", error);
-      alert("Failed to regenerate flashcards.");
+      alert(error?.message || "Failed to regenerate flashcards.");
     } finally {
       setIsProcessing(false);
     }
@@ -175,9 +171,9 @@ const App: React.FC = () => {
     try {
       const newQuiz = await generateQuiz(materials, notes, count);
       setQuizzes(newQuiz);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Quiz Regeneration Error:", error);
-      alert("Failed to regenerate quiz.");
+      alert(error?.message || "Failed to regenerate quiz.");
     } finally {
       setIsProcessing(false);
     }
@@ -189,9 +185,9 @@ const App: React.FC = () => {
     try {
       const newFaqs = await generateFAQMatrix(materials, notes);
       setFaqs(newFaqs);
-    } catch (error) {
+    } catch (error: any) {
       console.error("FAQ Regeneration Error:", error);
-      alert("Failed to regenerate FAQ Matrix.");
+      alert(error?.message || "Failed to regenerate FAQ Matrix.");
     } finally {
       setIsProcessing(false);
     }

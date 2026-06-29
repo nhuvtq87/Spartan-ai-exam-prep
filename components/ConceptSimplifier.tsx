@@ -22,9 +22,9 @@ const ConceptSimplifier: React.FC<ConceptSimplifierProps> = ({ materials, notes 
     try {
       const simplified = await simplifyConcept(input, mode);
       setResult(simplified);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert("Failed to simplify concept. Try a shorter snippet.");
+      alert(error?.message || "Failed to simplify concept. Try a shorter snippet.");
     } finally {
       setIsLoading(false);
     }
