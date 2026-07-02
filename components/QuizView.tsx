@@ -82,7 +82,7 @@ const QuizView: React.FC<QuizViewProps> = ({
             <input 
               type="range" 
               min="10" 
-              max="30" 
+              max="50" 
               step="1" 
               value={selectedCount}
               onChange={(e) => setSelectedCount(parseInt(e.target.value))}
@@ -90,7 +90,7 @@ const QuizView: React.FC<QuizViewProps> = ({
             />
             <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest">
               <span>10 Questions</span>
-              <span>30 Questions</span>
+              <span>50 Questions</span>
             </div>
           </div>
 
@@ -257,7 +257,7 @@ const QuizView: React.FC<QuizViewProps> = ({
                 onChange={(e) => setSelectedCount(parseInt(e.target.value))}
                 className="text-xs font-bold text-sjsu-blue bg-transparent outline-none cursor-pointer"
               >
-                {[...Array(21)].map((_, i) => (
+                {[...Array(41)].map((_, i) => (
                   <option key={i + 10} value={i + 10}>{i + 10}</option>
                 ))}
               </select>

@@ -28,8 +28,8 @@ const App: React.FC = () => {
   const [resources, setResources] = useState<any[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [sources, setSources] = useState<any[]>([]);
-  const [flashcardCount, setFlashcardCount] = useState(15);
-  const [quizCount, setQuizCount] = useState(10);
+  const [flashcardCount, setFlashcardCount] = useState(50);
+  const [quizCount, setQuizCount] = useState(50);
   const [courseName, setCourseName] = useState('');
 
   useEffect(() => {

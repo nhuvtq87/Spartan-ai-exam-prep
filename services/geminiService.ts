@@ -333,7 +333,7 @@ export const fetchLinkContent = async (url: string): Promise<{ text: string; sou
   return { text: result.text || "Could not extract content.", sources: result.sources || [] };
 };
 
-export const generateFlashcards = async (materials: CourseMaterial[], notes: Note[] = [], count: number = 15): Promise<Flashcard[]> => {
+export const generateFlashcards = async (materials: CourseMaterial[], notes: Note[] = [], count: number = 50): Promise<Flashcard[]> => {
   if (isBrowser) {
     const res = await fetch('/api/ai/flashcards', {
       method: 'POST',
@@ -397,7 +397,7 @@ export const generateFlashcards = async (materials: CourseMaterial[], notes: Not
   return data.flashcards || [];
 };
 
-export const generateQuiz = async (materials: CourseMaterial[], notes: Note[] = [], count: number = 10): Promise<QuizQuestion[]> => {
+export const generateQuiz = async (materials: CourseMaterial[], notes: Note[] = [], count: number = 50): Promise<QuizQuestion[]> => {
   if (isBrowser) {
     const res = await fetch('/api/ai/quiz', {
       method: 'POST',

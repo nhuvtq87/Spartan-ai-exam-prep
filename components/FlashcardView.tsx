@@ -114,7 +114,7 @@ const FlashcardView: React.FC<FlashcardViewProps> = ({
             <input 
               type="range" 
               min="10" 
-              max="30" 
+              max="50" 
               step="1" 
               value={selectedCount}
               onChange={(e) => setSelectedCount(parseInt(e.target.value))}
@@ -122,7 +122,7 @@ const FlashcardView: React.FC<FlashcardViewProps> = ({
             />
             <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest">
               <span>10 Cards</span>
-              <span>30 Cards</span>
+              <span>50 Cards</span>
             </div>
           </div>
 
@@ -211,7 +211,7 @@ const FlashcardView: React.FC<FlashcardViewProps> = ({
                 onChange={(e) => setSelectedCount(parseInt(e.target.value))}
                 className="text-xs font-bold text-sjsu-blue bg-transparent outline-none cursor-pointer"
               >
-                {[...Array(21)].map((_, i) => (
+                {[...Array(41)].map((_, i) => (
                   <option key={i + 10} value={i + 10}>{i + 10}</option>
                 ))}
               </select>
