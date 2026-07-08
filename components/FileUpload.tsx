@@ -1,5 +1,5 @@
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { CourseMaterial } from '../types';
 import JSZip from 'jszip';
 import mammoth from 'mammoth';
@@ -176,8 +176,9 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload, isProcessing, compact
     });
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
+  const [isDragging, setIsDragging] = useState(false);
+
+  const processFiles = async (files: FileList | null) => {
     if (!files) return;
 
     // Process files in parallel
@@ -249,9 +250,41 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload, isProcessing, compact
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    await processFiles(e.target.files);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDragging && !isProcessing) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (!isProcessing && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      await processFiles(e.dataTransfer.files);
+    }
+  };
+
   if (compact) {
     return (
-      <div className="w-full">
+      <div 
+        className="w-full"
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
         <input
           type="file"
           ref={fileInputRef}
@@ -263,7 +296,9 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload, isProcessing, compact
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={isProcessing}
-          className={`w-full py-3 px-4 bg-white/10 hover:bg-white/20 text-white border border-white/10 rounded-xl transition-all flex items-center justify-center space-x-3 group ${
+          className={`w-full py-3 px-4 transition-all flex items-center justify-center space-x-3 group rounded-xl border ${
+            isDragging ? 'bg-white/30 border-white/50' : 'bg-white/10 hover:bg-white/20 border-white/10'
+          } text-white ${
             isProcessing ? 'opacity-50 cursor-not-allowed' : ''
           }`}
         >
@@ -273,7 +308,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload, isProcessing, compact
             <i className="fa-solid fa-cloud-arrow-up text-xs text-sjsu-gold group-hover:scale-110 transition-transform"></i>
           )}
           <span className="text-[11px] font-bold uppercase tracking-wider">
-            {isProcessing ? 'Processing...' : 'Drop or Click'}
+            {isProcessing ? 'Processing...' : isDragging ? 'Drop Files Here' : 'Drop or Click'}
           </span>
         </button>
       </div>
@@ -281,8 +316,17 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload, isProcessing, compact
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 flex flex-col items-center justify-center space-y-4 text-center">
-      <div className="w-16 h-16 bg-blue-50 text-sjsu-blue rounded-full flex items-center justify-center">
+    <div 
+      className={`bg-white rounded-2xl shadow-sm border p-8 flex flex-col items-center justify-center space-y-4 text-center transition-all ${
+        isDragging ? 'border-sjsu-blue bg-blue-50/50 scale-[1.02]' : 'border-gray-100'
+      }`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-colors ${
+        isDragging ? 'bg-sjsu-blue text-white' : 'bg-blue-50 text-sjsu-blue'
+      }`}>
         <i className="fa-solid fa-file-export text-2xl"></i>
       </div>
       <div>
