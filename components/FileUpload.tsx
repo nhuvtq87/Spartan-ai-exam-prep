@@ -281,6 +281,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload, isProcessing, compact
     return (
       <div 
         className="w-full"
+        onDragEnter={handleDragOver}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -320,6 +321,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload, isProcessing, compact
       className={`bg-white rounded-2xl shadow-sm border p-8 flex flex-col items-center justify-center space-y-4 text-center transition-all ${
         isDragging ? 'border-sjsu-blue bg-blue-50/50 scale-[1.02]' : 'border-gray-100'
       }`}
+      onDragEnter={handleDragOver}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}

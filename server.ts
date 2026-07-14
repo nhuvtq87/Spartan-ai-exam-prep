@@ -117,17 +117,6 @@ async function startServer() {
     }
   });
 
-  app.post('/api/ai/fetch-link', async (req, res) => {
-    try {
-      const { url } = req.body;
-      const result = await geminiService.fetchLinkContent(url);
-      res.json(result);
-    } catch (error: any) {
-      console.error("AI Fetch Link Error:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
   // API routes go here
   app.get('/api/status', (req, res) => {
     res.json({ 

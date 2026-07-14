@@ -2,14 +2,12 @@
 import React from 'react';
 import { View, CourseMaterial } from '../types';
 import FileUpload from './FileUpload';
-import LinkImporter from './LinkImporter';
 
 interface SidebarProps {
   currentView: View;
   onViewChange: (view: View) => void;
   materials: CourseMaterial[];
   onUpload: (materials: CourseMaterial[]) => void;
-  onImport: (url: string) => void;
   isProcessing: boolean;
 }
 
@@ -18,7 +16,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   onViewChange, 
   materials, 
   onUpload, 
-  onImport, 
   isProcessing 
 }) => {
   const items: { id: View; icon: string; label: string }[] = [
@@ -98,9 +95,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             <div className="px-2 space-y-3">
               <div className="sidebar-upload-wrapper">
                 <FileUpload onUpload={onUpload} isProcessing={isProcessing} compact />
-              </div>
-              <div className="sidebar-import-wrapper">
-                <LinkImporter onImport={onImport} isProcessing={isProcessing} compact />
               </div>
             </div>
           </div>

@@ -59,7 +59,7 @@ function getGemini(forceNext: boolean = false) {
     process.env.GEMINI_API_KEY1,
     process.env.NEXT_PUBLIC_GEMINI_API_KEY,
     process.env.VITE_GEMINI_API_KEY
-  ])).filter((k): k is string => !!k && !k.startsWith('MY_G') && !k.startsWith('AIzaSyD3'));
+  ])).filter((k): k is string => !!k);
 
   console.log('--- getGemini() called ---');
   console.log('Resolved candidate keys prefixes:', candidateKeys.map(k => k.substring(0, 8)));
@@ -102,7 +102,7 @@ async function executeGeminiCall<T>(apiCall: () => Promise<T>): Promise<T> {
     process.env.GEMINI_API_KEY1,
     process.env.NEXT_PUBLIC_GEMINI_API_KEY,
     process.env.VITE_GEMINI_API_KEY
-  ])).filter((k): k is string => !!k && !k.startsWith('MY_G') && !k.startsWith('AIzaSyD3'));
+  ])).filter((k): k is string => !!k);
 
   const modelsToTry = ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.5-pro'];
   let modelIndex = 0;
@@ -293,45 +293,6 @@ function parseJSON(str: string) {
     throw new Error(`Failed to parse JSON response: ${e.message}. Raw output: ${str.substring(0, 100)}...`);
   }
 }
-
-export const fetchLinkContent = async (url: string): Promise<{ text: string; sources: any[] }> => {
-  if (isBrowser) {
-    const res = await fetch('/api/ai/fetch-link', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url })
-    });
-    return handleResponse(res, "Failed to fetch link content via server.");
-  }
-
-  const geminiCall = async () => {
-    const ai = getGemini();
-    const response = await ai.models.generateContent({
-      model: getCurrentModel(),
-      contents: { 
-        parts: [{ text: `Analyze the content of the article at this URL: ${url}. 
-      STRICT RULE: Extract ONLY the main academic or informational content present on the page.` }]
-      },
-      config: { tools: [{ googleSearch: {} }] },
-    });
-    return JSON.stringify({ text: response.text, sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || [] });
-  };
-
-  const openaiCall = async () => {
-    const openai = getOpenAI();
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: "Extract main academic content from the provided URL context." },
-        { role: "user", content: `Analyze the content of the article at this URL: ${url}` }
-      ]
-    });
-    return JSON.stringify({ text: response.choices[0].message.content, sources: [] });
-  };
-
-  const result = parseJSON(await callWithFailover(geminiCall, openaiCall));
-  return { text: result.text || "Could not extract content.", sources: result.sources || [] };
-};
 
 export const generateFlashcards = async (materials: CourseMaterial[], notes: Note[] = [], count: number = 50): Promise<Flashcard[]> => {
   if (isBrowser) {

@@ -3,7 +3,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import FileUpload from './components/FileUpload';
-import LinkImporter from './components/LinkImporter';
 import FlashcardView from './components/FlashcardView';
 import QuizView from './components/QuizView';
 import StudyPlanner from './components/StudyPlanner';
@@ -14,7 +13,7 @@ import ConceptSimplifier from './components/ConceptSimplifier';
 import NotesView from './components/NotesView';
 import OnboardingView from './components/OnboardingView';
 import { View, CourseMaterial, Flashcard, QuizQuestion, StudyEvent, StudySession, FAQItem, Note } from './types';
-import { generateFlashcards, generateQuiz, generateFAQMatrix, fetchLinkContent } from './services/geminiService';
+import { generateFlashcards, generateQuiz, generateFAQMatrix } from './services/geminiService';
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>('onboarding');
@@ -68,32 +67,6 @@ const App: React.FC = () => {
       processMaterials(updated, notes).finally(() => setIsProcessing(false));
       return updated;
     });
-  };
-
-  const handleLinkImport = async (url: string) => {
-    setIsProcessing(true);
-    try {
-      const { text, sources: newSources } = await fetchLinkContent(url);
-      setSources(prev => [...prev, ...newSources]);
-      
-      const newMaterial: CourseMaterial = {
-        id: crypto.randomUUID(),
-        name: `Article: ${url.split('/').pop() || 'Web Link'}`,
-        type: 'text/html',
-        content: text,
-        mimeType: 'text/html'
-      };
-      
-      setMaterials(prev => {
-        const updated = [...prev, newMaterial];
-        processMaterials(updated, notes).finally(() => setIsProcessing(false));
-        return updated;
-      });
-    } catch (error) {
-      console.error("Link Import Error:", error);
-      alert("Failed to process the link. Ensure it's publicly accessible.");
-      setIsProcessing(false);
-    }
   };
 
   const handleAddNote = (note: Note) => {
@@ -288,7 +261,6 @@ const App: React.FC = () => {
         onViewChange={setView} 
         materials={materials}
         onUpload={handleFileUpload}
-        onImport={handleLinkImport}
         isProcessing={isProcessing}
       />
       <main className="flex-1 p-4 md:p-8 lg:p-12 pb-24 md:pb-8 max-h-screen overflow-y-auto">
