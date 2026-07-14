@@ -9,6 +9,7 @@ interface QuizViewProps {
   isProcessing: boolean;
   onRegenerate: (count: number) => void;
   currentCount: number;
+  onUpload: (materials: CourseMaterial[]) => void;
 }
 
 const QuizView: React.FC<QuizViewProps> = ({ 
@@ -16,7 +17,8 @@ const QuizView: React.FC<QuizViewProps> = ({
   materials,
   isProcessing,
   onRegenerate,
-  currentCount
+  currentCount,
+  onUpload
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -50,11 +52,16 @@ const QuizView: React.FC<QuizViewProps> = ({
         <div className="w-24 h-24 bg-gray-100 text-gray-300 rounded-full flex items-center justify-center">
           <i className="fa-solid fa-cloud-arrow-up text-4xl"></i>
         </div>
-        <div className="space-y-2">
-          <h2 className="text-2xl font-bold text-gray-800">No Materials Found</h2>
-          <p className="text-gray-500 max-w-sm mx-auto">
-            Please upload a document or link in the sidebar to unlock this feature.
-          </p>
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800">No Materials Found</h2>
+            <p className="text-gray-500 max-w-sm mx-auto mt-2">
+              Please upload a document to unlock this feature.
+            </p>
+          </div>
+          <div className="max-w-md mx-auto w-full">
+            <FileUpload onUpload={onUpload} isProcessing={isProcessing} />
+          </div>
         </div>
       </div>
     );

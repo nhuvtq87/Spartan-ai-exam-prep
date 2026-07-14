@@ -210,6 +210,7 @@ const App: React.FC = () => {
             isProcessing={isProcessing} 
             onRegenerate={handleRegenerateFlashcards}
             currentCount={flashcardCount}
+            onUpload={handleFileUpload}
           />
         );
       case 'quiz':
@@ -220,6 +221,7 @@ const App: React.FC = () => {
             isProcessing={isProcessing} 
             onRegenerate={handleRegenerateQuiz}
             currentCount={quizCount}
+            onUpload={handleFileUpload}
           />
         );
       case 'faq':
