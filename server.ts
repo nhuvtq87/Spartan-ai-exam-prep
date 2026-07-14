@@ -16,6 +16,19 @@ console.log('SERVER STARTUP - Initial environment keys:', {
 import dotenv from 'dotenv';
 dotenv.config({ override: true });
 
+import fs from 'fs';
+if (fs.existsSync('/app/.dev.env.json')) {
+  try {
+    const devEnv = JSON.parse(fs.readFileSync('/app/.dev.env.json', 'utf8'));
+    for (const key in devEnv) {
+      process.env[key] = devEnv[key];
+    }
+    console.log('Loaded fresh environment variables from /app/.dev.env.json');
+  } catch (e) {
+    console.error('Failed to load /app/.dev.env.json', e);
+  }
+}
+
 console.log('SERVER STARTUP - After dotenv load:', {
   GEMINI_API_KEY: !!process.env.GEMINI_API_KEY,
   GEMINI_API_KEY_prefix: process.env.GEMINI_API_KEY?.substring(0, 8),

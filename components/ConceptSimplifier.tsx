@@ -15,16 +15,18 @@ const ConceptSimplifier: React.FC<ConceptSimplifierProps> = ({ materials, notes 
   const [isLoading, setIsLoading] = useState(false);
   const [mode, setMode] = useState('simple');
   const [showContextPicker, setShowContextPicker] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleSimplify = async () => {
     if (!input.trim() || isLoading) return;
     setIsLoading(true);
+    setErrorMsg(null);
     try {
       const simplified = await simplifyConcept(input, mode);
       setResult(simplified);
     } catch (error: any) {
       console.error(error);
-      alert(error?.message || "Failed to simplify concept. Try a shorter snippet.");
+      setErrorMsg(error?.message || "Failed to simplify concept. Try a shorter snippet.");
     } finally {
       setIsLoading(false);
     }
@@ -105,6 +107,12 @@ const ConceptSimplifier: React.FC<ConceptSimplifierProps> = ({ materials, notes 
             className="w-full h-40 p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-sjsu-blue outline-none transition-all resize-none text-gray-800 placeholder-gray-400"
           />
         </div>
+        
+        {errorMsg && (
+          <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100">
+            {errorMsg}
+          </div>
+        )}
 
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex flex-wrap gap-2 w-full md:w-auto">

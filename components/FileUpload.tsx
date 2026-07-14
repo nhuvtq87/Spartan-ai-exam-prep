@@ -18,6 +18,7 @@ interface FileUploadProps {
 
 const FileUpload: React.FC<FileUploadProps> = ({ onUpload, isProcessing, compact }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   /**
    * High-fidelity Word extractor (.docx)
@@ -223,7 +224,8 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload, isProcessing, compact
           // Validation: check if text is not empty or exclusively whitespace and length < 100
           // Skip check for images as they are handled by vision
           if (!file.type.startsWith('image/') && trimmedContent.length < 100) {
-            alert(`Error processing ${file.name}: Information is missing. The provided content is unreadable or contains no text data.`);
+            setErrorMsg(`Error processing ${file.name}: Information is missing. The provided content is unreadable or contains no text data.`);
+            setTimeout(() => setErrorMsg(null), 10000);
             return null;
           }
 
@@ -286,6 +288,12 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload, isProcessing, compact
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
+        {errorMsg && (
+          <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100 flex items-start">
+            <span className="mr-2">⚠️</span>
+            <span>{errorMsg}</span>
+          </div>
+        )}
         <input
           type="file"
           ref={fileInputRef}
@@ -317,15 +325,22 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload, isProcessing, compact
   }
 
   return (
-    <div 
-      className={`bg-white rounded-2xl shadow-sm border p-8 flex flex-col items-center justify-center space-y-4 text-center transition-all ${
-        isDragging ? 'border-sjsu-blue bg-blue-50/50 scale-[1.02]' : 'border-gray-100'
-      }`}
-      onDragEnter={handleDragOver}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-    >
+    <>
+      {errorMsg && (
+        <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100 flex items-start">
+          <span className="mr-2">⚠️</span>
+          <span>{errorMsg}</span>
+        </div>
+      )}
+      <div 
+        className={`bg-white rounded-2xl shadow-sm border p-8 flex flex-col items-center justify-center space-y-4 text-center transition-all ${
+          isDragging ? 'border-sjsu-blue bg-blue-50/50 scale-[1.02]' : 'border-gray-100'
+        }`}
+        onDragEnter={handleDragOver}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
       <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-colors ${
         isDragging ? 'bg-sjsu-blue text-white' : 'bg-blue-50 text-sjsu-blue'
       }`}>
@@ -368,6 +383,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload, isProcessing, compact
         Supports legacy DOC/PPT with best-effort extraction
       </p>
     </div>
+    </>
   );
 };
 

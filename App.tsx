@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { AlertCircle, X } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import FileUpload from './components/FileUpload';
@@ -26,6 +27,7 @@ const App: React.FC = () => {
   const [faqs, setFaqs] = useState<FAQItem[]>([]);
   const [resources, setResources] = useState<any[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [sources, setSources] = useState<any[]>([]);
   const [flashcardCount, setFlashcardCount] = useState(50);
   const [quizCount, setQuizCount] = useState(50);
@@ -38,6 +40,11 @@ const App: React.FC = () => {
       .then(data => setResources(data.links || []))
       .catch(err => console.error("Failed to fetch resources:", err));
   }, []);
+
+  const showError = (msg: string) => {
+    setErrorMsg(msg);
+    setTimeout(() => setErrorMsg(null), 10000);
+  };
 
   const processMaterials = async (allMaterials: CourseMaterial[], allNotes: Note[], fCount?: number, qCount?: number) => {
     if (allMaterials.length === 0 && allNotes.length === 0) return;
@@ -54,7 +61,7 @@ const App: React.FC = () => {
       setFaqs(newFaqs);
     } catch (error: any) {
       console.error("AI Generation Error:", error);
-      alert(error?.message || "Failed to process materials with AI. Please check your API key/connection.");
+      showError(error?.message || "Failed to process materials with AI. Please check your API key/connection.");
     }
   };
 
@@ -131,7 +138,7 @@ const App: React.FC = () => {
       setFlashcards(newFlashcards);
     } catch (error: any) {
       console.error("Flashcard Regeneration Error:", error);
-      alert(error?.message || "Failed to regenerate flashcards.");
+      showError(error?.message || "Failed to regenerate flashcards.");
     } finally {
       setIsProcessing(false);
     }
@@ -146,7 +153,7 @@ const App: React.FC = () => {
       setQuizzes(newQuiz);
     } catch (error: any) {
       console.error("Quiz Regeneration Error:", error);
-      alert(error?.message || "Failed to regenerate quiz.");
+      showError(error?.message || "Failed to regenerate quiz.");
     } finally {
       setIsProcessing(false);
     }
@@ -160,7 +167,7 @@ const App: React.FC = () => {
       setFaqs(newFaqs);
     } catch (error: any) {
       console.error("FAQ Regeneration Error:", error);
-      alert(error?.message || "Failed to regenerate FAQ Matrix.");
+      showError(error?.message || "Failed to regenerate FAQ Matrix.");
     } finally {
       setIsProcessing(false);
     }
@@ -257,7 +264,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50 relative">
       <Sidebar 
         currentView={view} 
         onViewChange={setView} 
@@ -265,6 +272,22 @@ const App: React.FC = () => {
         onUpload={handleFileUpload}
         isProcessing={isProcessing}
       />
+      {errorMsg && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-fadeIn w-full max-w-lg px-4">
+          <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded shadow-lg flex items-start justify-between">
+            <div className="flex items-start">
+              <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
+              <div>
+                <h3 className="text-red-800 font-bold text-sm">Error</h3>
+                <p className="text-red-700 text-xs mt-1">{errorMsg}</p>
+              </div>
+            </div>
+            <button onClick={() => setErrorMsg(null)} className="text-red-400 hover:text-red-600 transition-colors ml-4">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      )}
       <main className="flex-1 p-4 md:p-8 lg:p-12 pb-24 md:pb-8 max-h-screen overflow-y-auto">
         <div className="max-w-6xl mx-auto">
           {renderContent()}
